@@ -371,9 +371,10 @@ def render_markdown(store: Store, inv: Inventory, title: str = "noc-pulse report
         for name, c in sd["classes"].items():
             sla = c["sla"]
             per = ", ".join(f"{p} {v:.2f}%" for p, v in c["per_path_pct"].items())
+            jit = "any" if math.isinf(sla["jitter_ms"]) else f"<={sla['jitter_ms']:.0f} ms"
             lines.append(
-                f"| {name} | <{sla['latency_ms']:.0f} ms / <{_f(sla['jitter_ms'], 0)} ms / "
-                f"<{sla['loss_pct']:g} % | {c['static_pct']:.2f}% ({c['static_met']}/{c['intervals']}) | "
+                f"| {name} | <={sla['latency_ms']:.0f} ms / {jit} / "
+                f"<={sla['loss_pct']:g} % | {c['static_pct']:.2f}% ({c['static_met']}/{c['intervals']}) | "
                 f"{c['dynamic_pct']:.2f}% ({c['dynamic_met']}/{c['intervals']}) | "
                 f"{c['oracle_pct']:.2f}% | {c['static_switches']} / {c['dynamic_switches']} | {per} |"
             )

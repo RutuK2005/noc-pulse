@@ -7,8 +7,8 @@ All paths share the same physical access link, so their failures are correlated
 
 Per interval (bucket) and per path we compute latency (mean RTT), jitter
 (mean |delta RTT| inside each ping burst) and loss (% echoes lost). Each
-application class has an SLA (e.g. voice: latency < 150 ms, jitter < 30 ms,
-loss < 1 %). We then compare three policies on the same data:
+application class has an SLA (e.g. voice: RTT <= 150 ms, jitter <= 30 ms,
+loss <= 1 %). We then compare three policies on the same data:
 
 * static   : always use the primary path; fail over only when it is hard-down
              (no reply at all in the previous interval) -- classic routing.
@@ -65,7 +65,10 @@ def meets(s: PathSample | None, cls: AppClass) -> bool:
     if s is None or s.hard_down or s.latency_ms is None:
         return False
     jitter = s.jitter_ms or 0.0
-    return s.latency_ms < cls.max_latency_ms and jitter < cls.max_jitter_ms and s.loss_pct < cls.max_loss_pct
+    # an SLA threshold is a maximum: the interval complies if it does not exceed it
+    return (
+        s.latency_ms <= cls.max_latency_ms and jitter <= cls.max_jitter_ms and s.loss_pct <= cls.max_loss_pct
+    )
 
 
 def bucketize(
