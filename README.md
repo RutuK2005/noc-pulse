@@ -11,7 +11,7 @@ tickets** with P1-P4 priority, SLA timers and auto-attached L1 diagnostics, and 
 
 It was built as a portfolio project for a Service Assurance / NOC graduate role, so the
 emphasis is on doing a few things correctly and explaining them honestly. Every number in
-the results section below comes from the overnight run described there; how each one was
+the results section below comes from the measurement run described there; how each one was
 produced is listed in [`docs/FACTS.md`](docs/FACTS.md). A teaching guide (networking from
 zero, ITIL, formulas with worked examples, interview questions) is in
 [`docs/LEARN.md`](docs/LEARN.md).
@@ -64,11 +64,11 @@ flowchart LR
 
 * **One code path for live and history.** `Engine.process(sample)` is called by the collector
   in live mode and by `noc-pulse replay` over stored samples (the sample timestamp is the
-  clock), so the overnight data was alarmed and ticketed by exactly the code that runs live.
+  clock), so the measured data was alarmed and ticketed by exactly the code that runs live.
 * **Raw first.** The collector only stores raw samples; KPIs are computed at report time, so a
   formula fix never needs re-collection.
 * **Polite.** External targets cannot be probed more than once per 30 s per probe type (the
-  inventory loader rejects it). The overnight run used 30 s for ping bursts and 60 s for DNS,
+  inventory loader rejects it). The measurement run used 30 s for ping bursts and 60 s for DNS,
   TCP and HTTPS, one GET per minute per site (status line only, then close).
 
 ## Inventory used for the real run
@@ -106,20 +106,75 @@ and the same numbers are asserted in `tests/test_kpi.py`.
 
 ## Real results
 
-### Fault-injection demo (`noc-pulse demo`, 23 Nov 2026; full output in `results/fault_demo/`)
+<!-- results:start -->
+Collected with `noc-pulse collect --duration 9h --keep-awake` (stopped manually) from 2026-11-23 23:36:31 to 2026-11-24 01:35:31 (local time, IST) on one Windows 11 laptop on home Wi-Fi + broadband, then processed with `replay`, `report`, `sdwan`; full output in [`results/report.md`](results/report.md), an anonymised 1-hour raw sample in [`results/sample_raw.csv`](results/sample_raw.csv).
 
-| Scenario | Alarms | Tickets | Detect | Time to ack | Ticket open -> resolved |
-|---|---:|---:|---:|---:|---:|
-| Edge router down (all three lab services behind it fail) | 3 raised, 2 suppressed as downstream of the edge | 1 (P1) | 8.0 s | 5.1 s | 14.0 s |
-| Web app down only (edge healthy) | 1 | 1 (P2) | 9.8 s | - | 10.0 s |
+| Data | Value |
+|---|---|
+| Duration | 1.98 h |
+| Samples | 2,738 (ping bursts 952, DNS 476, TCP 833, HTTPS 477) |
+| ICMP echoes sent / received | 9,520 / 9,379 |
+| Collector gaps > 120 s | 0 |
 
-Probe interval 2 s; raise after 3 bad samples, clear after 2 good. All lab targets are local listeners on 127.0.0.1.
+**Customer services vs SLA (whole run).** Availability per minute (a minute is up only if every probe of every member target succeeded).
 
-### Live run (real public targets)
+| Service | SLA class | KPI source | Minutes | Availability % | p95 ms | Jitter ms | Loss % | MOS | SLA |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| acme-dia | silver | ping: wan-cloudflare, wan-google | 120 | 97.500 | 6.48 | 1.26 | 1.744 | - | breached: availability_pct, loss_pct |
+| acme-voice | gold | ping: wan-cloudflare | 120 | 98.333 | 6.36 | 1.45 | 1.681 | 4.25 | breached: availability_pct, loss_pct |
+| acme-dns | silver | dns: dns-site, wan-quad9 | 120 | 97.500 | 41.87 | - | - | - | breached: availability_pct |
+| portal-tatacomm | bronze | http: web-tatacomm | 120 | 97.500 | 368.93 | - | - | - | breached: availability_pct |
+| saas-web | bronze | http: web-google, web-cloudflare, web-wikipedia | 120 | 97.500 | 461.34 | - | - | - | breached: availability_pct |
 
-The collector runs against the targets in `config/inventory.yaml` (ping every 30 s, DNS/TCP/HTTPS every 60 s).
-A first snapshot (23 Nov 2026, 23:36-00:01, 564 samples, 1,960 ICMP echoes) had every service at 100% availability
-and voice MOS 4.34-4.40 on the measured links. Longer-run KPIs will be added when the overnight run is reported.
+**ICMP (10-echo bursts every 30 s).**
+
+| Target | Bursts | Echoes | Loss % | p50 RTT ms | p95 RTT ms | Jitter ms | MOS |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| site-gw | 238 | 2380 | 0.168 | 1.75 | 2.73 | 1.08 | 4.39 |
+| wan-cloudflare | 238 | 2380 | 1.681 | 5.07 | 6.36 | 1.45 | 4.25 |
+| wan-google | 238 | 2380 | 1.807 | 5.40 | 6.55 | 1.07 | 4.24 |
+| wan-quad9 | 238 | 2380 | 2.269 | 5.44 | 7.55 | 1.94 | 4.19 |
+
+**HTTPS (one GET per minute; latency = DNS + TCP + TLS + time to first byte) and TCP connect.**
+
+| Site | Samples | Availability % | p50 ms | p95 ms | TCP connect p50 ms | Cert days left (min) |
+|---|---:|---:|---:|---:|---:|---:|
+| web-cloudflare | 119 | 98.319 | 298.8 | 358.0 | 5.99 | 82.9 |
+| web-google | 119 | 98.319 | 169.2 | 679.2 | 6.74 | 63.5 |
+| web-tatacomm | 119 | 97.479 | 165.1 | 368.9 | 5.65 | 63.5 |
+| web-wikipedia | 120 | 97.500 | 257.8 | 317.1 | 58.52 | 39.9 |
+
+**DNS query time.**
+
+| Resolver | Queries | Availability % | p50 ms | p95 ms |
+|---|---:|---:|---:|---:|
+| dns-site | 119 | 98.319 | 4.49 | 24.08 |
+| wan-cloudflare | 119 | 98.319 | 12.88 | 35.79 |
+| wan-google | 119 | 97.479 | 14.98 | 29.87 |
+| wan-quad9 | 119 | 98.319 | 14.94 | 74.40 |
+
+**Alarms and tickets** (`noc-pulse replay` over the same samples): 10 alarms raised (4 suppressed by correlation, 0 flap re-raises; by rule: packet_loss 3, unreachable 7), 6 tickets opened (P1 2, P2 2, P3 2), MTTR 0.8 min. See [`results/report.md`](results/report.md) and [`results/shift_handover.md`](results/shift_handover.md).
+
+**SD-WAN simulation** (119 decision intervals of 60 s; paths path-a = wan-cloudflare, path-b = wan-google, path-c = wan-quad9; primary path-a; hold-down 3). Score = % of intervals in which the chosen path met the application SLA.
+
+| App class | SLA (RTT / jitter / loss) | Static primary | SLA-aware dynamic | Oracle | Switches static / dynamic | Each path alone |
+|---|---|---:|---:|---:|---|---|
+| voice | <=150 ms / <=30 ms / <=1 % | 98.32 % (117/119) | 98.32 % (117/119) | 98.32 % | 0 / 0 | path-a 98.32 %, path-b 97.48 %, path-c 95.80 % |
+| video | <=200 ms / <=50 ms / <=2 % | 98.32 % (117/119) | 98.32 % (117/119) | 98.32 % | 0 / 0 | path-a 98.32 %, path-b 97.48 %, path-c 95.80 % |
+| bulk | <=400 ms / any / <=5 % | 98.32 % (117/119) | 98.32 % (117/119) | 98.32 % | 0 / 0 | path-a 98.32 %, path-b 97.48 %, path-c 96.64 % |
+<!-- results:end -->
+
+**What happened in this run.** At 00:33-00:36 IST every Internet target failed for about
+2-3 minutes while the site gateway kept answering (gateway loss 0.17 % for the whole run),
+i.e. a short upstream (ISP-side) outage. The engine raised 10 alarms, suppressed 4 as
+same-target symptoms (packet loss under "unreachable", Google DNS under its ping alarm) and
+opened 6 tickets that all auto-resolved within about a minute of opening. That is also the
+honest lesson of the run: the three anycast targets and the web sites are *siblings* under
+the gateway in the inventory, and there is no node for the ISP uplink, so the engine could
+not tell that six tickets had one cause. Adding an `isp-uplink` parent (for example a ping
+to the ISP's first hop) would have folded them into one P1. Correlation is only as good as
+the dependency model. The outage is also why availability is about 97.5-98.3 % and the
+services show SLA breaches for this short window.
 
 ## Quick start
 
@@ -162,7 +217,20 @@ good, 4 s correlation window):
 2. **Application-only failure**: only the web app is stopped while the edge is healthy. Its
    alarm is *not* suppressed (its parent is fine) and gets its own **P2** ticket.
 
-DEMO_PLACEHOLDER
+<!-- demo:start -->
+Result of the committed run ([`results/fault_demo/README.md`](results/fault_demo/README.md) has the full timeline, worklogs and diagnostics output):
+
+| | Phase 1: edge failure | Phase 2: app-only failure |
+|---|---|---|
+| Fault -> alarm raised | 10.0 s | 9.8 s |
+| Ticket | INC000001 P1 | INC000002 P2 |
+| Child alarms suppressed under the root cause | 2 (#2 lab-api, #3 lab-app) | none (parent healthy) |
+| Tickets opened | 1 | 1 |
+| Ticket open -> acknowledged (scripted operator) | 5.1 s | - |
+| Ticket open -> Resolved (MTTR) | 14.0 s | 8.0 s |
+
+These are seconds because the lab probes every 2 s on localhost; they demonstrate the pipeline, not an operational MTTR.
+<!-- demo:end -->
 
 ## Dashboard
 
@@ -173,7 +241,7 @@ and diagnostics, and the SD-WAN comparison.
 
 ## Tests and CI
 
-`pytest` runs without network access. 90 tests cover: percentile, jitter
+`pytest` runs without network access. <!-- tests -->90 tests cover: percentile, jitter
 (mean deviation and the RFC 3550 estimator, hand-computed), loss, the E-model and MOS
 against worked examples, SLA evaluation, ping-output parsing (Windows and Linux), rule
 evaluation, hysteresis, de-duplication, flapping, parent/child and same-target correlation,
@@ -228,7 +296,7 @@ docs/LEARN.md    teaching guide + interview prep;  docs/FACTS.md  CV-safe facts 
 * **Sampling limits.** Availability is sample-based: an outage shorter than the probe
   interval (30-60 s) can be missed, and nothing is measured while the PC is off or asleep
   (gaps are counted in the report).
-* **Overnight alarms/tickets come from `replay`**, i.e. the same engine run over the stored
+* **Alarms/tickets of the measurement run come from `replay`**, i.e. the same engine run over the stored
   samples after collection, not from a live engine during the night. Auto-diagnostics cannot
   run for the past, and there are no human acknowledgements in a replay, so MTTA is only
   demonstrated in the fault-injection demo.

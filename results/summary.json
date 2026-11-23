@@ -1,0 +1,579 @@
+{
+  "generated": "2026-11-24 01:35:44",
+  "coverage": {
+    "first": 1795457191.069018,
+    "last": 1795464331.0695863,
+    "duration_h": 1.9833334912194147,
+    "samples": 2738,
+    "by_probe": {
+      "dns": 476,
+      "http": 477,
+      "ping": 952,
+      "tcp": 833
+    },
+    "echoes_sent": 9520,
+    "echoes_received": 9379,
+    "gaps": [],
+    "gap_total_s": 0
+  },
+  "first_local": "2026-11-23 23:36:31",
+  "last_local": "2026-11-24 01:35:31",
+  "targets": [
+    {
+      "target": "dns-site",
+      "probe": "dns",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 7.329632478632479,
+      "latency_p50_ms": 4.486,
+      "latency_p95_ms": 24.0838,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "LifetimeTimeout"
+    },
+    {
+      "target": "site-gw",
+      "probe": "ping",
+      "samples": 238,
+      "ok": 238,
+      "availability_pct": 100.0,
+      "latency_mean_ms": 2.3355538720538718,
+      "latency_p50_ms": 1.754,
+      "latency_p95_ms": 2.734,
+      "jitter_ms": 1.081219831618335,
+      "loss_pct": 0.16806722689075632,
+      "echoes_sent": 2380,
+      "echoes_received": 2376,
+      "r_factor": 92.00819479230576,
+      "mos": 4.3850387895552325,
+      "top_error": ""
+    },
+    {
+      "target": "wan-cloudflare",
+      "probe": "dns",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 16.169153846153847,
+      "latency_p50_ms": 12.885,
+      "latency_p95_ms": 35.78800000000001,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "LifetimeTimeout"
+    },
+    {
+      "target": "wan-cloudflare",
+      "probe": "ping",
+      "samples": 238,
+      "ok": 234,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 5.626136752136752,
+      "latency_p50_ms": 5.067,
+      "latency_p95_ms": 6.35705,
+      "jitter_ms": 1.451704178537512,
+      "loss_pct": 1.680672268907563,
+      "echoes_sent": 2380,
+      "echoes_received": 2340,
+      "r_factor": 86.62089800344519,
+      "mos": 4.247689972670076,
+      "top_error": "no echo replies"
+    },
+    {
+      "target": "wan-cloudflare",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 6.9461025641025635,
+      "latency_p50_ms": 6.122,
+      "latency_p95_ms": 8.951000000000002,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "wan-google",
+      "probe": "dns",
+      "samples": 119,
+      "ok": 116,
+      "availability_pct": 97.47899159663865,
+      "latency_mean_ms": 16.52876724137931,
+      "latency_p50_ms": 14.9795,
+      "latency_p95_ms": 29.86525,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "LifetimeTimeout"
+    },
+    {
+      "target": "wan-google",
+      "probe": "ping",
+      "samples": 238,
+      "ok": 234,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 5.7839413778348305,
+      "latency_p50_ms": 5.402,
+      "latency_p95_ms": 6.549399999999997,
+      "jitter_ms": 1.0726737993342843,
+      "loss_pct": 1.8067226890756303,
+      "echoes_sent": 2380,
+      "echoes_received": 2337,
+      "r_factor": 86.22007940716435,
+      "mos": 4.23576838695353,
+      "top_error": "no echo replies"
+    },
+    {
+      "target": "wan-google",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 8.293367521367522,
+      "latency_p50_ms": 6.39,
+      "latency_p95_ms": 14.653000000000008,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "wan-quad9",
+      "probe": "dns",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 20.920153846153845,
+      "latency_p50_ms": 14.941,
+      "latency_p95_ms": 74.40360000000001,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "LifetimeTimeout"
+    },
+    {
+      "target": "wan-quad9",
+      "probe": "ping",
+      "samples": 238,
+      "ok": 233,
+      "availability_pct": 97.89915966386555,
+      "latency_mean_ms": 6.260411865864145,
+      "latency_p50_ms": 5.4435,
+      "latency_p95_ms": 7.54925,
+      "jitter_ms": 1.937425226946966,
+      "loss_pct": 2.26890756302521,
+      "echoes_sent": 2380,
+      "echoes_received": 2326,
+      "r_factor": 84.67629143187999,
+      "mos": 4.1878020850358295,
+      "top_error": "no echo replies"
+    },
+    {
+      "target": "wan-quad9",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 10.117786324786325,
+      "latency_p50_ms": 6.583,
+      "latency_p95_ms": 16.141600000000004,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-cloudflare",
+      "probe": "http",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 304.6201623931624,
+      "latency_p50_ms": 298.803,
+      "latency_p95_ms": 357.995,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "cert_days_min": 82.92,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-cloudflare",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 116,
+      "availability_pct": 97.47899159663865,
+      "latency_mean_ms": 6.944931034482758,
+      "latency_p50_ms": 5.989000000000001,
+      "latency_p95_ms": 11.215250000000001,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-google",
+      "probe": "http",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 307.4277264957265,
+      "latency_p50_ms": 169.243,
+      "latency_p95_ms": 679.2284,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "cert_days_min": 63.52,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-google",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 8.666529914529916,
+      "latency_p50_ms": 6.736,
+      "latency_p95_ms": 17.180800000000005,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-tatacomm",
+      "probe": "http",
+      "samples": 119,
+      "ok": 116,
+      "availability_pct": 97.47899159663865,
+      "latency_mean_ms": 206.9565517241379,
+      "latency_p50_ms": 165.0775,
+      "latency_p95_ms": 368.9325,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "cert_days_min": 63.52,
+      "top_error": "gaierror"
+    },
+    {
+      "target": "web-tatacomm",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 6.537017094017094,
+      "latency_p50_ms": 5.649,
+      "latency_p95_ms": 8.201800000000002,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "gaierror"
+    },
+    {
+      "target": "web-wikipedia",
+      "probe": "http",
+      "samples": 120,
+      "ok": 117,
+      "availability_pct": 97.5,
+      "latency_mean_ms": 273.3560683760684,
+      "latency_p50_ms": 257.757,
+      "latency_p95_ms": 317.10420000000005,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "cert_days_min": 39.94,
+      "top_error": "TimeoutError"
+    },
+    {
+      "target": "web-wikipedia",
+      "probe": "tcp",
+      "samples": 119,
+      "ok": 117,
+      "availability_pct": 98.31932773109244,
+      "latency_mean_ms": 69.09976068376068,
+      "latency_p50_ms": 58.52,
+      "latency_p95_ms": 72.41560000000001,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "echoes_sent": 0,
+      "echoes_received": 0,
+      "r_factor": null,
+      "mos": null,
+      "top_error": "TimeoutError"
+    }
+  ],
+  "services": [
+    {
+      "service": "acme-dia",
+      "name": "Dedicated Internet Access",
+      "customer": "Acme Retail (fictional)",
+      "sla_class": "silver",
+      "kpi_source": "ping: wan-cloudflare, wan-google",
+      "minutes": 120,
+      "minutes_up": 117,
+      "availability_pct": 97.5,
+      "latency_p50_ms": 5.229,
+      "latency_p95_ms": 6.476,
+      "jitter_ms": 1.2623240674744596,
+      "loss_pct": 1.7436974789915967,
+      "mos": null,
+      "r_factor": null,
+      "breaches": [
+        "availability_pct",
+        "loss_pct"
+      ]
+    },
+    {
+      "service": "acme-voice",
+      "name": "Voice / SIP trunk (quality estimated from ICMP)",
+      "customer": "Acme Retail (fictional)",
+      "sla_class": "gold",
+      "kpi_source": "ping: wan-cloudflare",
+      "minutes": 120,
+      "minutes_up": 118,
+      "availability_pct": 98.33333333333333,
+      "latency_p50_ms": 5.067,
+      "latency_p95_ms": 6.35705,
+      "jitter_ms": 1.451704178537512,
+      "loss_pct": 1.680672268907563,
+      "mos": 4.247689972670076,
+      "r_factor": 86.62089800344519,
+      "breaches": [
+        "availability_pct",
+        "loss_pct"
+      ]
+    },
+    {
+      "service": "acme-dns",
+      "name": "Managed DNS",
+      "customer": "Acme Retail (fictional)",
+      "sla_class": "silver",
+      "kpi_source": "dns: dns-site, wan-quad9",
+      "minutes": 120,
+      "minutes_up": 117,
+      "availability_pct": 97.5,
+      "latency_p50_ms": 7.7684999999999995,
+      "latency_p95_ms": 41.87374999999999,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "mos": null,
+      "r_factor": null,
+      "breaches": [
+        "availability_pct"
+      ]
+    },
+    {
+      "service": "portal-tatacomm",
+      "name": "Web portal reachability (tatacommunications.com)",
+      "customer": "NOC self-check",
+      "sla_class": "bronze",
+      "kpi_source": "http: web-tatacomm",
+      "minutes": 120,
+      "minutes_up": 117,
+      "availability_pct": 97.5,
+      "latency_p50_ms": 165.0775,
+      "latency_p95_ms": 368.9325,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "mos": null,
+      "r_factor": null,
+      "breaches": [
+        "availability_pct"
+      ]
+    },
+    {
+      "service": "saas-web",
+      "name": "SaaS web access (Google, Cloudflare, Wikipedia)",
+      "customer": "Acme Retail (fictional)",
+      "sla_class": "bronze",
+      "kpi_source": "http: web-google, web-cloudflare, web-wikipedia",
+      "minutes": 120,
+      "minutes_up": 117,
+      "availability_pct": 97.5,
+      "latency_p50_ms": 269.328,
+      "latency_p95_ms": 461.3405,
+      "jitter_ms": null,
+      "loss_pct": null,
+      "mos": null,
+      "r_factor": null,
+      "breaches": [
+        "availability_pct"
+      ]
+    }
+  ],
+  "alarms": {
+    "total": 10,
+    "suppressed": 4,
+    "flaps": 0,
+    "by_rule": {
+      "unreachable": 7,
+      "packet_loss": 3
+    },
+    "by_severity": {
+      "critical": 7,
+      "major": 3
+    }
+  },
+  "tickets": {
+    "total": 6,
+    "by_priority": {
+      "P2": 2,
+      "P1": 2,
+      "P3": 2
+    },
+    "by_state": {
+      "Closed": 3,
+      "Resolved": 3
+    },
+    "mtta_s": null,
+    "mttr_s": 49.34288692474365,
+    "sla": {
+      "P1": {
+        "tickets": 2,
+        "resolved": 2,
+        "response_breaches": 0,
+        "resolve_breaches": 0
+      },
+      "P2": {
+        "tickets": 2,
+        "resolved": 2,
+        "response_breaches": 0,
+        "resolve_breaches": 0
+      },
+      "P3": {
+        "tickets": 2,
+        "resolved": 2,
+        "response_breaches": 0,
+        "resolve_breaches": 0
+      }
+    }
+  },
+  "sdwan": {
+    "intervals": 119,
+    "bucket_s": 60.0,
+    "hold_down": 3,
+    "primary": "path-a",
+    "paths": [
+      "path-a",
+      "path-b",
+      "path-c"
+    ],
+    "start": 1795457160.0,
+    "end": 1795464360.0,
+    "classes": {
+      "voice": {
+        "sla": {
+          "latency_ms": 150.0,
+          "jitter_ms": 30.0,
+          "loss_pct": 1.0
+        },
+        "static_pct": 98.31932773109244,
+        "dynamic_pct": 98.31932773109244,
+        "oracle_pct": 98.31932773109244,
+        "static_met": 117,
+        "dynamic_met": 117,
+        "oracle_met": 117,
+        "intervals": 119,
+        "static_switches": 0,
+        "dynamic_switches": 0,
+        "per_path_pct": {
+          "path-a": 98.31932773109244,
+          "path-b": 97.47899159663865,
+          "path-c": 95.7983193277311
+        }
+      },
+      "video": {
+        "sla": {
+          "latency_ms": 200.0,
+          "jitter_ms": 50.0,
+          "loss_pct": 2.0
+        },
+        "static_pct": 98.31932773109244,
+        "dynamic_pct": 98.31932773109244,
+        "oracle_pct": 98.31932773109244,
+        "static_met": 117,
+        "dynamic_met": 117,
+        "oracle_met": 117,
+        "intervals": 119,
+        "static_switches": 0,
+        "dynamic_switches": 0,
+        "per_path_pct": {
+          "path-a": 98.31932773109244,
+          "path-b": 97.47899159663865,
+          "path-c": 95.7983193277311
+        }
+      },
+      "bulk": {
+        "sla": {
+          "latency_ms": 400.0,
+          "jitter_ms": Infinity,
+          "loss_pct": 5.0
+        },
+        "static_pct": 98.31932773109244,
+        "dynamic_pct": 98.31932773109244,
+        "oracle_pct": 98.31932773109244,
+        "static_met": 117,
+        "dynamic_met": 117,
+        "oracle_met": 117,
+        "intervals": 119,
+        "static_switches": 0,
+        "dynamic_switches": 0,
+        "per_path_pct": {
+          "path-a": 98.31932773109244,
+          "path-b": 97.47899159663865,
+          "path-c": 96.63865546218487
+        }
+      }
+    },
+    "path_targets": {
+      "path-a": "wan-cloudflare",
+      "path-b": "wan-google",
+      "path-c": "wan-quad9"
+    }
+  }
+}

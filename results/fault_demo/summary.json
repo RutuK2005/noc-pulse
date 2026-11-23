@@ -1,11 +1,11 @@
 {
   "phase1": {
-    "detect_s": 8.0,
+    "detect_s": 10.0,
     "ticket": "INC000001",
     "priority": "P1",
     "suppressed_child_alarms": [
-      "#1 lab-api",
-      "#2 lab-app"
+      "#2 lab-api",
+      "#3 lab-app"
     ],
     "tickets_opened_in_phase": 1,
     "time_to_ack_s": 5.1,
@@ -17,10 +17,10 @@
     "ticket": "INC000002",
     "priority": "P2",
     "suppressed": false,
-    "mttr_s": 10.0
+    "mttr_s": 8.0
   },
   "tickets_total": 2,
   "alarms_total": 4,
   "alarms_suppressed": 2,
-  "samples": 88
+  "samples": 91
 }

@@ -13,11 +13,11 @@
     ],
     "parent_id": null,
     "children": [],
-    "opened_at_s": 22.1,
-    "acknowledged_at_s": 27.1,
-    "in_progress_at_s": 30.1,
-    "resolved_at_s": 36.1,
-    "closed_at_s": 40.2,
+    "opened_at_s": 24.1,
+    "acknowledged_at_s": 29.2,
+    "in_progress_at_s": 32.2,
+    "resolved_at_s": 38.1,
+    "closed_at_s": 42.3,
     "time_to_ack_s": 5.1,
     "time_to_resolve_s": 14.0,
     "response_breached": false,
@@ -25,52 +25,52 @@
     "resolution": "auto-resolved: alarm cleared, service restored",
     "worklog": [
       {
-        "t_s": 22.1,
+        "t_s": 24.1,
         "kind": "opened",
         "text": "P1 (impact=high, urgency=high): [CRITICAL] Branch-07 edge router (lab listener): unreachable (tcp)"
       },
       {
-        "t_s": 22.1,
+        "t_s": 24.1,
         "kind": "alarm",
-        "text": "lab-edge/tcp: Probe failed (timeout, refused, DNS error, HTTP >= 400) (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)"
+        "text": "lab-edge/tcp failed: ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection"
       },
       {
-        "t_s": 27.1,
+        "t_s": 29.2,
         "kind": "state",
         "text": "New -> Acknowledged: L1: acknowledged, edge unreachable, checking"
       },
       {
-        "t_s": 27.2,
+        "t_s": 29.2,
         "kind": "diagnostics",
         "text": "L1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
       },
       {
-        "t_s": 30.1,
+        "t_s": 32.2,
         "kind": "state",
         "text": "Acknowledged -> In Progress: L1: field/carrier check requested"
       },
       {
-        "t_s": 36.1,
+        "t_s": 38.1,
         "kind": "state",
         "text": "In Progress -> Resolved: auto-resolved: alarm cleared, service restored"
       },
       {
-        "t_s": 36.1,
-        "kind": "correlation",
-        "text": "child alarm #1 cleared"
-      },
-      {
-        "t_s": 36.1,
+        "t_s": 38.1,
         "kind": "correlation",
         "text": "child alarm #2 cleared"
       },
       {
-        "t_s": 40.2,
+        "t_s": 38.1,
+        "kind": "correlation",
+        "text": "child alarm #3 cleared"
+      },
+      {
+        "t_s": 42.3,
         "kind": "state",
         "text": "Resolved -> Closed: customer confirmed service restored"
       }
     ],
-    "diagnostics": "== auto-diagnostics for lab-edge (Branch-07 edge router (lab listener)) at 2026-11-23 23:53:11 ==\n\n$ ping -n 4 -w 1000 127.0.0.1\nPinging 127.0.0.1 with 32 bytes of data:\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nPing statistics for 127.0.0.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms\n\n$ tracert -d -h 12 -w 500 127.0.0.1\nTracing route to 127.0.0.1 over a maximum of 12 hops\n  1    <1 ms    <1 ms    <1 ms  127.0.0.1\nTrace complete.\n\nTCP connect 127.0.0.1:18081: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nL1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
+    "diagnostics": "== auto-diagnostics for lab-edge (Branch-07 edge router (lab listener)) at 2026-11-24 01:36:15 ==\n\n$ ping -n 4 -w 1000 127.0.0.1\nPinging 127.0.0.1 with 32 bytes of data:\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nPing statistics for 127.0.0.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms\n\n$ tracert -d -h 12 -w 500 127.0.0.1\nTracing route to 127.0.0.1 over a maximum of 12 hops\n  1    <1 ms    <1 ms    <1 ms  127.0.0.1\nTrace complete.\n\ntraceroute: last reply from hop 1 (127.0.0.1) = destination reached\n\nTCP connect 127.0.0.1:18081: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nL1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
   },
   {
     "id": "INC000002",
@@ -84,38 +84,38 @@
     ],
     "parent_id": null,
     "children": [],
-    "opened_at_s": 60.1,
+    "opened_at_s": 64.1,
     "acknowledged_at_s": null,
     "in_progress_at_s": null,
-    "resolved_at_s": 70.1,
+    "resolved_at_s": 72.1,
     "closed_at_s": null,
     "time_to_ack_s": null,
-    "time_to_resolve_s": 10.0,
+    "time_to_resolve_s": 8.0,
     "response_breached": false,
     "resolve_breached": false,
     "resolution": "auto-resolved: alarm cleared, service restored",
     "worklog": [
       {
-        "t_s": 60.1,
+        "t_s": 64.1,
         "kind": "opened",
         "text": "P2 (impact=medium, urgency=high): [CRITICAL] Customer web app (lab HTTP server): unreachable (http)"
       },
       {
-        "t_s": 60.1,
+        "t_s": 64.1,
         "kind": "alarm",
-        "text": "lab-app/http: Probe failed (timeout, refused, DNS error, HTTP >= 400) (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)"
+        "text": "lab-app/http failed: ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection"
       },
       {
-        "t_s": 64.1,
+        "t_s": 68.2,
         "kind": "diagnostics",
         "text": "L1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
       },
       {
-        "t_s": 70.1,
+        "t_s": 72.1,
         "kind": "state",
         "text": "New -> Resolved: auto-resolved: alarm cleared, service restored"
       }
     ],
-    "diagnostics": "== auto-diagnostics for lab-app (Customer web app (lab HTTP server)) at 2026-11-23 23:53:47 ==\n\n$ ping -n 4 -w 1000 127.0.0.1\nPinging 127.0.0.1 with 32 bytes of data:\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nPing statistics for 127.0.0.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms\n\n$ tracert -d -h 12 -w 500 127.0.0.1\nTracing route to 127.0.0.1 over a maximum of 12 hops\n  1    <1 ms    <1 ms    <1 ms  127.0.0.1\nTrace complete.\n\nTCP connect 127.0.0.1:18080: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nHTTP GET http://127.0.0.1:18080/health: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nL1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
+    "diagnostics": "== auto-diagnostics for lab-app (Customer web app (lab HTTP server)) at 2026-11-24 01:36:53 ==\n\n$ ping -n 4 -w 1000 127.0.0.1\nPinging 127.0.0.1 with 32 bytes of data:\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128\nPing statistics for 127.0.0.1:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms\n\n$ tracert -d -h 12 -w 500 127.0.0.1\nTracing route to 127.0.0.1 over a maximum of 12 hops\n  1    <1 ms    <1 ms    <1 ms  127.0.0.1\nTrace complete.\n\ntraceroute: last reply from hop 1 (127.0.0.1) = destination reached\n\nTCP connect 127.0.0.1:18080: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nHTTP GET http://127.0.0.1:18080/health: FAILED (ConnectionRefusedError: [WinError 1225] The remote computer refused the network connection)\n\nL1 triage summary: host answers ping but port refused/filtered -> application or firewall issue"
   }
 ]
