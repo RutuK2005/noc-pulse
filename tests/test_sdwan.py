@@ -94,3 +94,10 @@ def test_run_simulation_report_shape():
     assert rep["intervals"] == 9
     voice = rep["classes"]["voice"]
     assert voice["static_pct"] == voice["dynamic_pct"] == voice["oracle_pct"] == 100.0
+
+
+def test_zero_hold_down_does_not_bounce_back_to_a_failing_primary():
+    a = [GOOD] + [BAD] * 20
+    b = [GOOD] * 21
+    dy = simulate_dynamic({"a": a, "b": b}, VOICE, "a", hold_down=0)
+    assert dy.met == 19 and dy.switches == 1  # leaves a once, never returns

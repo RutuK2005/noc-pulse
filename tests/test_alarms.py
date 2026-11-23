@@ -1,6 +1,6 @@
 from noc_pulse.alarms import AlarmEngine, evaluate_rule
 
-from conftest import sample
+from conftest import LAB, sample
 
 
 def kinds(events):
@@ -152,3 +152,74 @@ def test_orphaned_child_becomes_independent_after_grace(inv):
     ev = eng.evaluate(sample("app", "http", 800, ok=False))
     assert kinds(ev) == [("unsuppressed", "app", "unreachable")]
     assert not ev[0].alarm.suppressed
+
+
+def test_flapping_root_does_not_suppress_itself(inv):
+    """Regression: http alarm #1 is root, tcp #2 is its same-target symptom; #1 clears and
+    re-raises inside the flap window while #2 is still active. #1 must stay the root
+    (not suppressed under itself) and evaluation must terminate."""
+    import copy
+
+    from noc_pulse.inventory import parse_inventory
+
+    data = copy.deepcopy(LAB)
+    data["targets"][2]["probes"].append({"kind": "tcp", "interval_s": 60, "port": 443})
+    lab = parse_inventory(data)
+    eng = AlarmEngine(lab)
+    ts = 0
+    for _ in range(3):
+        eng.evaluate(sample("app", "http", ts, ok=False))
+        eng.evaluate(sample("app", "tcp", ts + 1, ok=False))
+        ts += 60
+    http = next(a for a in eng.active.values() if a.probe == "http")
+    tcp = next(a for a in eng.active.values() if a.probe == "tcp")
+    assert not http.suppressed and tcp.suppressed and tcp.root_cause_id == http.id
+    for _ in range(2):  # http recovers, tcp keeps failing
+        eng.evaluate(sample("app", "http", ts))
+        eng.evaluate(sample("app", "tcp", ts + 1, ok=False))
+        ts += 60
+    assert http.state == "cleared"
+    ev = []
+    for _ in range(3):  # http fails again within the flap window
+        ev += eng.evaluate(sample("app", "http", ts, ok=False))
+        ev += eng.evaluate(sample("app", "tcp", ts + 1, ok=False))
+        ts += 60
+    assert ("reraised", "app", "unreachable") in kinds(ev)
+    assert http.state == "active" and not http.suppressed and http.root_cause_id is None
+    assert tcp.root_cause_id == http.id and tcp.orphaned_at is None
+    for _ in range(20):  # long after the orphan grace: still terminates, still linked
+        eng.evaluate(sample("app", "tcp", ts + 1, ok=False))
+        ts += 60
+    assert tcp.suppressed and tcp.root_cause_id == http.id
+
+
+def test_chain_stops_at_cleared_root_and_child_later_becomes_independent(inv):
+    eng = AlarmEngine(inv, orphan_grace_s=300)
+    t = 0
+    for _ in range(3):  # gateway and dns down together
+        eng.evaluate(sample("gw", "ping", t, ok=False))
+        eng.evaluate(sample("dns", "dns", t + 1, ok=False))
+        t += 30
+    gw = next(a for a in eng.active.values() if a.target == "gw" and a.rule == "unreachable")
+    dns = next(a for a in eng.active.values() if a.target == "dns")
+    assert dns.root_cause_id == gw.id
+    for _ in range(2):  # gateway recovers, dns still down (inside its grace)
+        eng.evaluate(sample("gw", "ping", t))
+        eng.evaluate(sample("dns", "dns", t + 1, ok=False))
+        t += 30
+    for _ in range(3):  # app fails now: its root must be the *active* dns alarm
+        eng.evaluate(sample("app", "http", t + 2, ok=False))
+        eng.evaluate(sample("dns", "dns", t + 1, ok=False))
+        t += 30
+    app = next(a for a in eng.active.values() if a.target == "app")
+    assert app.suppressed and app.root_cause_id == dns.id
+    for _ in range(2):  # dns recovers; app keeps failing on its own
+        eng.evaluate(sample("dns", "dns", t + 1))
+        eng.evaluate(sample("app", "http", t + 2, ok=False))
+        t += 30
+    ev = []
+    for _ in range(15):
+        ev += eng.evaluate(sample("app", "http", t + 2, ok=False))
+        t += 30
+    assert ("unsuppressed", "app", "unreachable") in kinds(ev)
+    assert not app.suppressed

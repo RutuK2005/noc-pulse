@@ -129,8 +129,27 @@ class AlarmEngine:
             return override.get(result.probe)
         return override
 
-    def _root_for(self, target: str, exclude: str | None = None) -> Alarm | None:
-        """Root cause for a new alarm on ``target``.
+    def _top_of_chain(self, a: Alarm, exclude_id: int | None) -> Alarm | None:
+        """Follow ``root_cause_id`` links upwards through *active* alarms.
+
+        Stops at an alarm whose root is no longer active (the root cleared) and
+        guards against cycles. Returns None if the chain leads back to
+        ``exclude_id`` - i.e. the alarm being evaluated is itself the parent.
+        """
+        root = a
+        seen = {a.id}
+        while root.suppressed and root.root_cause_id in self.alarms:
+            nxt = self.alarms[root.root_cause_id]
+            if nxt.id == exclude_id:
+                return None
+            if nxt.state != "active" or nxt.id in seen:
+                break
+            seen.add(nxt.id)
+            root = nxt
+        return root
+
+    def _root_for(self, target: str, exclude: Alarm | None = None) -> Alarm | None:
+        """Root cause for an alarm on ``target`` (``exclude`` = the alarm itself).
 
         Candidates, nearest first: another active service-affecting alarm on the
         same target (e.g. "unreachable" explains "packet_loss"), then active
@@ -138,12 +157,13 @@ class AlarmEngine:
         """
         if target not in self.inv.targets:
             return None
+        exclude_id = exclude.id if exclude else None
         for anc in [target, *self.inv.ancestors(target)]:
             for a in self.active.values():
-                if a.target == anc and a.service_affecting and a.key != exclude:
-                    root = a
-                    while root.suppressed and root.root_cause_id in self.alarms:
-                        root = self.alarms[root.root_cause_id]
+                if a.target != anc or not a.service_affecting or a.id == exclude_id:
+                    continue
+                root = self._top_of_chain(a, exclude_id)
+                if root is not None:
                     return root
         return None
 
@@ -213,7 +233,7 @@ class AlarmEngine:
             self.alarms[alarm.id] = alarm
             kind = "raised"
         self.active[key] = alarm
-        root = self._root_for(alarm.target, exclude=key)
+        root = self._root_for(alarm.target, exclude=alarm)
         alarm.suppressed = root is not None
         alarm.root_cause_id = root.id if root else None
         alarm.orphaned_at = None
@@ -224,10 +244,11 @@ class AlarmEngine:
             for child in list(self.active.values()):
                 if child is alarm:
                     continue
+                if child.suppressed and child.root_cause_id == alarm.id:
+                    child.orphaned_at = None  # re-adopted by a re-raised (flapping) parent
+                    continue
                 same_target = child.target == alarm.target and not child.service_affecting
                 if child.target not in below and not same_target:
-                    continue
-                if child.suppressed and child.root_cause_id == alarm.id:
                     continue
                 child.suppressed = True
                 child.root_cause_id = alarm.id
@@ -251,7 +272,7 @@ class AlarmEngine:
             return []
         if ts - alarm.orphaned_at < self.orphan_grace_s:
             return []
-        root = self._root_for(alarm.target, exclude=alarm.key)
+        root = self._root_for(alarm.target, exclude=alarm)
         if root is not None:
             alarm.root_cause_id = root.id
             alarm.orphaned_at = None

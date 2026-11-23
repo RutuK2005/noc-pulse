@@ -40,9 +40,12 @@ class Engine:
         self.store = store
         self.alarms = AlarmEngine(inv)
         start_seq = 1
-        if store is not None:
-            row = store.conn.execute("SELECT COUNT(*) FROM tickets").fetchone()
-            start_seq = int(row[0]) + 1
+        if store is not None:  # continue numbering after anything already in the database
+            max_alarm = store.conn.execute("SELECT MAX(id) FROM alarms").fetchone()[0]
+            self.alarms._next_id = int(max_alarm or 0) + 1
+            ids = [r[0] for r in store.conn.execute("SELECT id FROM tickets")]
+            nums = [int(x[3:]) for x in ids if x.startswith("INC") and x[3:].isdigit()]
+            start_seq = max(nums, default=0) + 1
         self.tickets = TicketManager(inv.ticketing, start_seq=start_seq)
         self.diagnostics = diagnostics
         self.trace = trace
@@ -74,6 +77,25 @@ class Engine:
     def _save_ticket(self, t: Ticket) -> None:
         if self.store is not None:
             save_ticket(self.store, t)
+
+    def _sync(self, t: Ticket | None) -> Ticket | None:
+        """Reload a ticket from the database before changing it.
+
+        An operator may have acknowledged / resolved / closed it with the CLI while
+        the engine was running; without this the engine would overwrite that change.
+        """
+        if t is None or self.store is None:
+            return t
+        rows = self.store.rows("SELECT * FROM tickets WHERE id = ?", (t.id,))
+        if rows:
+            events = [
+                (r["ts"], r["kind"], r["text"])
+                for r in self.store.rows(
+                    "SELECT ts, kind, text FROM ticket_events WHERE ticket_id = ? ORDER BY id", (t.id,)
+                )
+            ]
+            t.__dict__.update(Ticket.from_row(rows[0], events).__dict__)
+        return t
 
     # ------------------------------------------------------------------
     def process(self, result: ProbeResult) -> list[AlarmEvent]:
@@ -121,7 +143,7 @@ class Engine:
                     else f"{ev.kind} {tag} suppressed",
                 )
                 if root and root.ticket_id in self.tickets.tickets:
-                    rt = self.tickets.tickets[root.ticket_id]
+                    rt = self._sync(self.tickets.tickets[root.ticket_id])
                     rt.log(ts, "correlation", f"child alarm #{a.id} suppressed: {a.message}")
                     self._save_ticket(rt)
             else:
@@ -134,27 +156,27 @@ class Engine:
         elif ev.kind == "correlated":
             root = self.alarms.alarms[ev.info["root"]]
             self._note(ts, f"CORRELATED {tag} under root cause alarm #{root.id} ({root.target})")
-            parent = self.tickets.tickets.get(root.ticket_id or "")
-            child = self.tickets.tickets.get(a.ticket_id or "")
+            parent = self._sync(self.tickets.tickets.get(root.ticket_id or ""))
+            child = self._sync(self.tickets.tickets.get(a.ticket_id or ""))
             if parent and child and child.id != parent.id:
                 self.tickets.link_child(parent, child, ts)
                 self._save_ticket(parent)
                 self._save_ticket(child)
         elif ev.kind == "cleared":
             self._note(ts, f"CLEARED {tag} after {ts - a.raised_at:.0f}s")
-            t = self.tickets.tickets.get(a.ticket_id or "")
+            t = self._sync(self.tickets.tickets.get(a.ticket_id or ""))
             if t and t.state not in (TicketState.RESOLVED, TicketState.CLOSED):
                 self._resolve(t, ts, "auto-resolved: alarm cleared, service restored")
             elif a.suppressed and a.root_cause_id:
                 root = self.alarms.alarms.get(a.root_cause_id)
-                rt = self.tickets.tickets.get(root.ticket_id or "") if root else None
+                rt = self._sync(self.tickets.tickets.get(root.ticket_id or "")) if root else None
                 if rt:
                     rt.log(ts, "correlation", f"child alarm #{a.id} cleared")
                     self._save_ticket(rt)
         self._save_alarm(a)
 
     def _ticket_for(self, a: Alarm, ts: float, kind: str) -> None:
-        existing = self.tickets.tickets.get(a.ticket_id or "")
+        existing = self._sync(self.tickets.tickets.get(a.ticket_id or ""))
         if existing and existing.state is not TicketState.CLOSED:
             if existing.state is TicketState.RESOLVED:
                 existing.transition(TicketState.IN_PROGRESS, ts, "re-opened: alarm re-raised (flap)")
@@ -179,6 +201,13 @@ class Engine:
             f"TICKET {t.id} opened {t.priority} for alarm #{a.id}; "
             f"impacted services: {', '.join(services) or '-'}",
         )
+        # late parent inside the correlation window: link child incidents opened earlier
+        for child_alarm in list(self.alarms.active.values()):
+            if child_alarm.root_cause_id == a.id and child_alarm.ticket_id in self.tickets.tickets:
+                child = self._sync(self.tickets.tickets[child_alarm.ticket_id])
+                if child is not None and child.id != t.id and child.parent_id is None:
+                    self.tickets.link_child(t, child, ts)
+                    self._save_ticket(child)
         self._save_ticket(t)
         if self.diagnostics and a.target in self.inv.targets:
             self._schedule_diagnostics(t, a)
@@ -196,6 +225,7 @@ class Engine:
                 text = await run_diagnostics(target, self._host(a.target), a.probe, self.trace)
             except Exception as exc:  # noqa: BLE001
                 text = f"(diagnostics failed: {exc!r})"
+            self._sync(t)
             t.diagnostics = text
             t.log(time.time(), "diagnostics", text.splitlines()[-1])
             self._note(time.time(), f"DIAGNOSTICS attached to {t.id}: {text.splitlines()[-1]}")
@@ -210,6 +240,7 @@ class Engine:
         task.add_done_callback(self._tasks.discard)
 
     def _resolve(self, t: Ticket, ts: float, note: str) -> None:
+        self._sync(t)
         if t.state in (TicketState.RESOLVED, TicketState.CLOSED):
             return
         t.transition(TicketState.RESOLVED, ts, note)
@@ -227,8 +258,10 @@ class Engine:
                 and t.resolved_at is not None
                 and (now - t.resolved_at >= self.auto_close_s)
             ):
-                t.transition(TicketState.CLOSED, now, "auto-closed: no recurrence")
-                self._save_ticket(t)
+                self._sync(t)
+                if t.state is TicketState.RESOLVED:
+                    t.transition(TicketState.CLOSED, now, "auto-closed: no recurrence")
+                    self._save_ticket(t)
 
     # ------------------------------------------------------------------
     def operator_action(self, ticket_id: str, action: str, ts: float, note: str = "") -> Ticket:
@@ -238,7 +271,7 @@ class Engine:
             "resolve": TicketState.RESOLVED,
             "close": TicketState.CLOSED,
         }
-        t = self.tickets.tickets[ticket_id]
+        t = self._sync(self.tickets.tickets[ticket_id])
         t.transition(mapping[action], ts, note)
         self._note(ts, f"OPERATOR {action} {t.id}" + (f": {note}" if note else ""))
         self._save_ticket(t)

@@ -74,6 +74,7 @@ class Ticket:
     services: list[str] = field(default_factory=list)
     diagnostics: str | None = None
     resolution: str | None = None
+    first_response_at: float | None = None  # first ack or resolution; never cleared by a re-open
     worklog: list[tuple[float, str, str]] = field(default_factory=list)
 
     # ---- lifecycle -------------------------------------------------------
@@ -83,6 +84,8 @@ class Ticket:
             raise InvalidTransition(f"{self.id}: {self.state.value} -> {new.value} is not allowed")
         old = self.state
         self.state = new
+        if new in (S.ACKNOWLEDGED, S.RESOLVED) and self.first_response_at is None:
+            self.first_response_at = ts
         if new is S.ACKNOWLEDGED:
             self.acknowledged_at = ts
         elif new is S.IN_PROGRESS:
@@ -102,12 +105,6 @@ class Ticket:
         self.worklog.append((ts, kind, text))
 
     # ---- SLA timers ------------------------------------------------------
-    @property
-    def first_response_at(self) -> float | None:
-        """Acknowledgement, or resolution if the alarm cleared before anyone acked."""
-        candidates = [t for t in (self.acknowledged_at, self.resolved_at) if t is not None]
-        return min(candidates) if candidates else None
-
     def response_breached(self, now: float) -> bool:
         t = self.first_response_at
         return (t if t is not None else now) > self.response_due
@@ -147,7 +144,7 @@ class Ticket:
             "services": json.dumps(self.services),
             "diagnostics": self.diagnostics,
             "resolution": self.resolution,
-            "data": json.dumps({"children": self.children}),
+            "data": json.dumps({"children": self.children, "first_response_at": self.first_response_at}),
         }
 
     @classmethod
@@ -171,6 +168,7 @@ class Ticket:
             closed_at=row.get("closed_at"),
             parent_id=row.get("parent_id"),
             children=list(data.get("children", [])),
+            first_response_at=data.get("first_response_at"),
             services=json.loads(row.get("services") or "[]"),
             diagnostics=row.get("diagnostics"),
             resolution=row.get("resolution"),

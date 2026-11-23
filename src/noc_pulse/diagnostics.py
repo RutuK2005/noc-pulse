@@ -38,6 +38,7 @@ async def _run(cmd: list[str], timeout_s: float) -> str:
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
     except TimeoutError:
         proc.kill()
+        await proc.wait()
         return f"(timed out after {timeout_s:.0f}s)"
     text = out.decode(errors="replace").strip()
     return "\n".join(line.rstrip() for line in text.splitlines() if line.strip())

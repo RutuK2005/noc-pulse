@@ -160,7 +160,7 @@ def probe(inventory: Path = InvOpt) -> None:
 def report(
     inventory: Path = InvOpt,
     db: Path = DbOpt,
-    since: str = typer.Option(None, help="only the last N (e.g. 2h); default all data"),
+    since: str = typer.Option(None, help="console tables: only the last N (e.g. 2h); files use all data"),
     markdown: Path = typer.Option(None, help="also write a Markdown report to this file"),
     json_out: Path = typer.Option(None, "--json", help="also write a JSON summary to this file"),
 ) -> None:

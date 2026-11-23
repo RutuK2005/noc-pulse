@@ -243,3 +243,60 @@ def test_replay_over_store_is_deterministic(inv):
     assert rows1 == rows2
     assert len(first.tickets.tickets) == len(second.tickets.tickets) == 1
     assert rows1[0]["raised_at"] == 120 and rows1[0]["cleared_at"] is None
+
+
+def test_late_parent_inside_correlation_window_links_child_ticket(inv):
+    inv.correlation_window_s = 30
+    eng = Engine(inv, None)
+    for i in range(3):  # app ticket opens first (after its 30 s window)
+        eng.process(sample("app", "http", i * 10, ok=False))
+    eng.process(sample("app", "http", 60, ok=False))
+    (app_t,) = eng.tickets.tickets.values()
+    for i in range(3):  # then its DNS dependency fails; dns ticket opens after the window
+        eng.process(sample("dns", "dns", 100 + i * 10, ok=False))
+    for i in range(4):
+        eng.process(sample("dns", "dns", 130 + i * 10, ok=False))
+    dns_t = next(t for t in eng.tickets.tickets.values() if t.target == "dns")
+    assert app_t.parent_id == dns_t.id and app_t.id in dns_t.children
+    for i in range(2):
+        eng.process(sample("dns", "dns", 200 + i * 10))
+    assert dns_t.state is S.RESOLVED and app_t.state is S.RESOLVED
+
+
+def test_reopen_keeps_first_response():
+    _, t = new_ticket(ts=0)
+    t.transition(S.RESOLVED, 120, "auto")  # first response at 2 min
+    t.transition(S.IN_PROGRESS, 1200, "re-opened by flap")
+    assert t.first_response_at == 120
+    assert not t.response_breached(now=5000)
+
+
+def test_engine_continues_ids_after_existing_rows(inv):
+    store = Store(":memory:")
+    first = Engine(inv, store)
+    for i in range(3):
+        first.process(sample("app", "http", i * 60, ok=False))
+    second = Engine(inv, store)  # e.g. `collect --engine` restarted on the same database
+    for i in range(3):
+        second.process(sample("api", "tcp", 1000 + i * 60, ok=False))
+    ids = [r["id"] for r in store.rows("SELECT id FROM alarms ORDER BY id")]
+    assert ids == [1, 2]
+    tids = [r["id"] for r in store.rows("SELECT id FROM tickets ORDER BY id")]
+    assert tids == ["INC000001", "INC000002"]
+
+
+def test_engine_respects_operator_changes_made_in_the_database(inv):
+    from noc_pulse.engine import save_ticket
+
+    store = Store(":memory:")
+    eng = Engine(inv, store)
+    for i in range(3):
+        eng.process(sample("app", "http", i * 60, ok=False))
+    (t,) = load_tickets(store)
+    t.transition(S.ACKNOWLEDGED, 200, "CLI ack")  # as `noc-pulse tickets ack` would do
+    save_ticket(store, t)
+    for i in range(2):  # alarm clears -> engine resolves; the CLI ack must survive
+        eng.process(sample("app", "http", 240 + i * 60))
+    (t,) = load_tickets(store)
+    assert t.state is S.RESOLVED and t.acknowledged_at == 200
+    assert any("CLI ack" in w[2] for w in t.worklog)

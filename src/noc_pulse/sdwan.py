@@ -73,8 +73,11 @@ def bucketize(
 ) -> tuple[list[float], dict[str, list[PathSample]]]:
     """Align ping results of every path into common time buckets.
 
-    Buckets where *no* path has data are dropped (collector gap, e.g. the PC was
-    asleep). A bucket where only some paths lack data counts as hard-down for them.
+    The window is the overlap of all paths' first..last buckets. Inside it,
+    buckets where *no* path has data are dropped (collector gap, e.g. the PC was
+    asleep), and a bucket where only some paths lack data counts as hard-down for
+    them. Note: after a dropped gap, the "previous interval" a policy decides on is
+    the last bucket before the gap.
     """
     per_path: dict[str, dict[int, list[ProbeResult]]] = {}
     for path, results in results_by_path.items():
@@ -172,7 +175,7 @@ def simulate_dynamic(
                     paths,
                     key=lambda p: (prev[p].loss_pct, prev[p].latency_ms or math.inf),
                 )
-        elif current != primary and since_switch >= hold_down and primary_good_streak >= hold_down:
+        elif current != primary and since_switch >= hold_down and primary_good_streak >= max(1, hold_down):
             want = primary  # pre-empt back to the preferred path once it is stable
         if want != current:
             res.switches += 1

@@ -126,7 +126,12 @@ async def _system_ping(host: str, count: int, timeout_s: float) -> tuple[int, in
     proc = await asyncio.create_subprocess_exec(
         *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
     )
-    out, _ = await asyncio.wait_for(proc.communicate(), timeout=count * (timeout_s + 1) + 5)
+    try:
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=count * (timeout_s + 1) + 5)
+    except TimeoutError:
+        proc.kill()
+        await proc.wait()
+        raise
     return parse_ping_output(out.decode(errors="replace"), count)
 
 

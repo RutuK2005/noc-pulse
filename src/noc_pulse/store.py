@@ -1,8 +1,10 @@
 """SQLite storage for raw probe samples, collector runs, alarms and tickets.
 
 SQLite (stdlib) is enough for one collector: WAL mode lets the dashboard and
-reports read while the collector writes. Only target *ids* are stored, never
-the resolved IP of the site gateway, so exported samples are anonymous.
+reports read while the collector writes. Samples store target *ids* only, never
+the resolved IP of the site gateway, so exported samples are anonymous. (Ticket
+diagnostics from a live engine run do contain the addresses that ping/tracert
+print; they are not part of the CSV export.)
 """
 
 from __future__ import annotations

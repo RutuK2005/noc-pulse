@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -107,7 +108,7 @@ if choice:
     rs = store.samples(target=target, probe=probe, since=since)
     df = pd.DataFrame(
         {
-            "time": pd.to_datetime([r.ts for r in rs], unit="s"),
+            "time": [datetime.fromtimestamp(r.ts) for r in rs],  # local time, like the tables
             "latency_ms": [r.latency_ms for r in rs],
             "ok": [r.ok for r in rs],
             "loss_pct": [r.loss_pct for r in rs],

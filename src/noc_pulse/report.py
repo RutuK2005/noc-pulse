@@ -111,6 +111,9 @@ def service_kpis(
         kpi_results.sort(key=lambda r: r.ts)
         k = summarize(kpi_results) if kpi_results else KpiSummary()
         k.availability_pct = avail
+        if not svc.voice:  # MOS is a voice metric: only voice services are judged on it
+            k.mos = None
+            k.r_factor = None
         policy = inv.sla_policies[svc.sla_class]
         checks = evaluate_sla(k, policy)
         out.append(
