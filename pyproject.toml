@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "noc-pulse"
+version = "0.1.0"
+description = "A small service-assurance / NOC toolkit: probes, KPIs, alarm correlation, ITIL-style tickets and an SD-WAN path-selection simulation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Rutuparn K", email = "rutuparnk2005@gmail.com" }]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pyyaml>=6",
+    "dnspython>=2.6",
+    "icmplib>=3.0",
+]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.35", "pandas>=2.1"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+noc-pulse = "noc_pulse.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["B008", "SIM105"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["noc_pulse"]
+known-local-folder = ["conftest"]

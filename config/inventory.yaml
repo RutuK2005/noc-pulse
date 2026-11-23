@@ -1,0 +1,245 @@
+# noc-pulse inventory
+# -------------------
+# targets      = monitored elements (CIs): the site gateway, DNS resolvers, transit
+#                anycast addresses and customer-facing HTTPS apps, with their probes.
+# depends_on   = the dependency tree used for alarm correlation
+#                (site-gw -> dns-site -> web apps;  site-gw -> public resolvers).
+# services     = "customer services" built on top of targets, each with an SLA class.
+# sla_policies = KPI targets per service class.
+# alarm_rules  = threshold rules with hysteresis (raise_after / clear_after).
+# ticketing    = ITIL impact x urgency matrix and response/resolve targets.
+#
+# Politeness: every external target is probed at most once per 30 s per probe type
+# (the loader refuses smaller intervals for non-private addresses).
+
+version: 1
+
+sla_policies:
+  gold:                 # premium / voice-grade
+    availability_pct: 99.9
+    latency_p95_ms: 100
+    jitter_ms: 20
+    loss_pct: 0.5
+    mos_min: 4.0
+  silver:               # business internet / DNS
+    availability_pct: 99.5
+    latency_p95_ms: 200
+    jitter_ms: 30
+    loss_pct: 1.0
+    mos_min: 3.6
+  bronze:               # best-effort web reachability
+    availability_pct: 99.0
+    latency_p95_ms: 1500
+    jitter_ms: 50
+    loss_pct: 2.0
+    mos_min: null
+
+targets:
+  - id: site-gw
+    name: Site gateway (CPE / Wi-Fi router)
+    role: gateway
+    host: auto-gateway          # resolved at start-up from the OS routing table
+    probes:
+      - {kind: ping, interval_s: 30, count: 10}
+
+  - id: dns-site
+    name: Site DNS (OS-configured resolver)
+    role: dns
+    host: system                # use whatever resolver the OS is configured with
+    depends_on: [site-gw]
+    probes:
+      - {kind: dns, interval_s: 60, query: www.tatacommunications.com}
+
+  - id: wan-cloudflare
+    name: Cloudflare anycast 1.1.1.1
+    role: transit
+    host: 1.1.1.1
+    depends_on: [site-gw]
+    probes:
+      - {kind: ping, interval_s: 30, count: 10}
+      - {kind: dns, interval_s: 60, query: www.tatacommunications.com}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: wan-google
+    name: Google Public DNS 8.8.8.8
+    role: transit
+    host: 8.8.8.8
+    depends_on: [site-gw]
+    probes:
+      - {kind: ping, interval_s: 30, count: 10}
+      - {kind: dns, interval_s: 60, query: www.tatacommunications.com}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: wan-quad9
+    name: Quad9 9.9.9.9
+    role: transit
+    host: 9.9.9.9
+    depends_on: [site-gw]
+    probes:
+      - {kind: ping, interval_s: 30, count: 10}
+      - {kind: dns, interval_s: 60, query: www.tatacommunications.com}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: web-tatacomm
+    name: tatacommunications.com (HTTPS)
+    role: app
+    host: www.tatacommunications.com
+    depends_on: [dns-site]
+    probes:
+      - {kind: http, interval_s: 60, url: "https://www.tatacommunications.com/"}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: web-google
+    name: google.com (HTTPS)
+    role: app
+    host: www.google.com
+    depends_on: [dns-site]
+    probes:
+      - {kind: http, interval_s: 60, url: "https://www.google.com/"}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: web-cloudflare
+    name: cloudflare.com (HTTPS)
+    role: app
+    host: www.cloudflare.com
+    depends_on: [dns-site]
+    probes:
+      - {kind: http, interval_s: 60, url: "https://www.cloudflare.com/"}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+  - id: web-wikipedia
+    name: wikipedia.org (HTTPS)
+    role: app
+    host: www.wikipedia.org
+    depends_on: [dns-site]
+    probes:
+      - {kind: http, interval_s: 60, url: "https://www.wikipedia.org/"}
+      - {kind: tcp, interval_s: 60, port: 443}
+
+services:
+  - id: acme-dia
+    name: Dedicated Internet Access
+    customer: Acme Retail (fictional)
+    site: Branch-01 (lab PC)
+    sla_class: silver
+    impact: high
+    targets: [site-gw, wan-cloudflare, wan-google]
+
+  - id: acme-voice
+    name: Voice / SIP trunk (quality estimated from ICMP)
+    customer: Acme Retail (fictional)
+    site: Branch-01 (lab PC)
+    sla_class: gold
+    impact: high
+    voice: true
+    targets: [site-gw, wan-cloudflare]
+
+  - id: acme-dns
+    name: Managed DNS
+    customer: Acme Retail (fictional)
+    site: Branch-01 (lab PC)
+    sla_class: silver
+    impact: medium
+    kpi_probe: dns              # KPIs from DNS resolution time, not ICMP
+    targets: [dns-site, wan-quad9]
+
+  - id: portal-tatacomm
+    name: Web portal reachability (tatacommunications.com)
+    customer: NOC self-check
+    site: Branch-01 (lab PC)
+    sla_class: bronze
+    impact: medium
+    targets: [web-tatacomm]
+
+  - id: saas-web
+    name: SaaS web access (Google, Cloudflare, Wikipedia)
+    customer: Acme Retail (fictional)
+    site: Branch-01 (lab PC)
+    sla_class: bronze
+    impact: low
+    targets: [web-google, web-cloudflare, web-wikipedia]
+
+alarm_rules:
+  - id: unreachable
+    description: Probe failed (timeout, refused, DNS error, HTTP >= 400)
+    applies_to: [ping, tcp, dns, http]
+    field: ok
+    op: "=="
+    value: false
+    severity: critical
+    raise_after: 3
+    clear_after: 2
+    service_affecting: true
+
+  - id: packet_loss
+    description: ICMP loss in one 10-echo burst at or above 20 %
+    applies_to: [ping]
+    field: loss_pct
+    op: ">="
+    value: 20
+    severity: major
+    raise_after: 3
+    clear_after: 3
+
+  - id: high_latency
+    description: Latency above the per-probe threshold
+    applies_to: [ping, tcp, dns, http]
+    field: latency_ms
+    op: ">"
+    value: {ping: 100, tcp: 150, dns: 250, http: 3000}
+    severity: minor
+    raise_after: 5
+    clear_after: 3
+
+  - id: high_jitter
+    description: Mean absolute RTT variation inside a ping burst above 30 ms
+    applies_to: [ping]
+    field: jitter_ms
+    op: ">"
+    value: 30
+    severity: minor
+    raise_after: 5
+    clear_after: 3
+
+  - id: cert_expiry
+    description: TLS certificate expires in fewer than 21 days
+    applies_to: [http]
+    field: cert_days
+    op: "<"
+    value: 21
+    severity: warning
+    raise_after: 1
+    clear_after: 1
+
+alarm_settings:
+  flap_window_s: 600        # a re-raise within this window reopens the same alarm (flap)
+  correlation_window_s: 60  # wait this long for a parent alarm before opening a ticket
+
+ticketing:
+  # rows = impact (from the affected services), columns = urgency (from alarm severity)
+  priority_matrix:
+    high:   {high: P1, medium: P2, low: P3}
+    medium: {high: P2, medium: P3, low: P4}
+    low:    {high: P3, medium: P4, low: P4}
+  urgency_from_severity: {critical: high, major: medium, minor: low, warning: low}
+  sla_minutes:            # response = time to acknowledge, resolve = time to restore
+    P1: {response: 15, resolve: 240}
+    P2: {response: 30, resolve: 480}
+    P3: {response: 120, resolve: 1440}
+    P4: {response: 480, resolve: 4320}
+  open_for_severities: [critical, major]   # minor/warning alarms stay on the console only
+
+sdwan:
+  # SIMULATION over measured data: each "path" is the ICMP series we measured
+  # towards one destination. They share one physical access link (see README).
+  paths:
+    path-a: wan-cloudflare
+    path-b: wan-google
+    path-c: wan-quad9
+  primary: path-a
+  bucket_s: 60            # one decision interval = 60 s (2 ping bursts = 20 echoes per path)
+  hold_down: 3            # intervals to stay on a path after switching
+  classes:                # latency = measured RTT (stricter than one-way)
+    voice: {latency_ms: 150, jitter_ms: 30, loss_pct: 1.0}
+    video: {latency_ms: 200, jitter_ms: 50, loss_pct: 2.0}
+    bulk:  {latency_ms: 400, jitter_ms: null, loss_pct: 5.0}
