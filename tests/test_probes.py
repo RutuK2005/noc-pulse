@@ -18,7 +18,7 @@ Ping statistics for 1.1.1.1:
 
 WINDOWS_UNREACHABLE = """
 Pinging 10.9.9.9 with 32 bytes of data:
-Reply from 192.168.1.38: Destination host unreachable.
+Reply from 192.168.1.20: Destination host unreachable.
 Request timed out.
 
 Ping statistics for 10.9.9.9:

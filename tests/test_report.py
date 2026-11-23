@@ -52,7 +52,7 @@ def test_report_end_to_end_on_store(inv):
 TRACERT = """
 Tracing route to 192.0.2.1 over a maximum of 12 hops
 
-  1     2 ms     1 ms     1 ms  192.168.1.10
+  1     2 ms     1 ms     1 ms  192.168.1.1
   2     4 ms     3 ms     3 ms  10.20.0.1
   3     *        *        *     Request timed out.
   4     6 ms     5 ms     5 ms  203.0.113.9
