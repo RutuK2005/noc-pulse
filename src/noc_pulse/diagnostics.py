@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import platform
+import re
 import time
 from urllib.parse import urlsplit
 
@@ -124,6 +125,13 @@ async def run_diagnostics(target: Target, host: str, probe: str, trace: bool = T
         sections.append("$ " + " ".join(ping_cmd(host)) + "\n" + out)
     if "traceroute" in results:
         sections.append("$ " + " ".join(trace_cmd(host)) + "\n" + results["traceroute"])
+        hop = last_responding_hop(results["traceroute"])
+        if hop is not None:
+            reached = hop[1] == host
+            sections.append(
+                f"traceroute: last reply from hop {hop[0]} ({hop[1]})"
+                + (" = destination reached" if reached else " -> path stops after this hop")
+            )
     if dns_lines:
         sections.append("DNS checks:\n" + "\n".join("  " + x for x in dns_lines))
     if tcp_line:
@@ -134,12 +142,29 @@ async def run_diagnostics(target: Target, host: str, probe: str, trace: bool = T
     return "\n\n".join(sections)
 
 
+_HOP_RE = re.compile(r"^\s*(\d+)\s+.*?(\d{1,3}(?:\.\d{1,3}){3})\b")
+
+
+def last_responding_hop(trace_output: str) -> tuple[int, str] | None:
+    """(hop number, address) of the last hop that answered in tracert/traceroute output."""
+    last = None
+    for line in trace_output.splitlines():
+        if line.lstrip().lower().startswith(("tracing", "traceroute", "over a")):
+            continue
+        m = _HOP_RE.match(line)
+        if m:
+            last = (int(m.group(1)), m.group(2))
+    return last
+
+
 def summarize_findings(f: dict[str, bool | None]) -> str:
     """Turn the individual checks into a first-line hypothesis (layer by layer)."""
     if f.get("dns") is False and not f.get("tcp") and not f.get("ping"):
         return "name resolution failing -> check resolver / DNS service first"
     if f.get("ping") is False and f.get("tcp") is False:
         return "host unreachable at L3 and service port closed -> suspect link/host down"
+    if f.get("ping") is False and f.get("tcp") is None and f.get("http") is None:
+        return "no ICMP reply (host/path down or ICMP filtered) -> check where traceroute stops"
     if f.get("ping") is False and f.get("tcp"):
         return "ICMP blocked or rate-limited but TCP works -> service likely fine, check ICMP policy"
     if f.get("ping") and f.get("tcp") is False:
