@@ -245,7 +245,7 @@ async def run_demo(inventory_path: Path, db_path: Path, out_dir: Path, echo=prin
         "## Timeline (seconds since start)",
         "",
         "```",
-        *[f"t+{rel:6.1f}s  {text}" for rel, text in sorted(timeline, key=lambda x: x[0])],
+        *[f"t+{rel:6.1f}s  {text}" for rel, text in timeline],  # processing order
         "```",
         "",
         "## Summary",

@@ -317,7 +317,7 @@ def tickets_list(
             k.state.value,
             fmt_ts(k.opened_at),
             k.target,
-            k.title[:50],
+            k.title[:70],
             resp,
             res,
             "-" if ttr is None else f"{ttr / 60:.1f} min",
@@ -346,7 +346,7 @@ def tickets_show(ticket_id: str, db: Path = DbOpt) -> None:
     if t.parent_id or t.children:
         console.print(f"parent={t.parent_id} children={t.children}")
     for ts, kind, text in t.worklog:
-        console.print(f"  {fmt_ts(ts)} [{kind}] {text}")
+        console.print(f"  {fmt_ts(ts)} [{kind}] {text}", markup=False)
     if t.diagnostics:
         console.rule("auto-diagnostics")
         console.print(t.diagnostics, markup=False)

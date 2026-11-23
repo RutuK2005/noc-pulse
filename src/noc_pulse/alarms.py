@@ -150,7 +150,7 @@ class AlarmEngine:
     def _message(self, rule: RuleSpec, result: ProbeResult) -> str:
         value = result.metrics().get(rule.field)
         if rule.field == "ok":
-            return f"{result.target}/{result.probe}: {rule.description} ({result.error or 'failed'})"
+            return f"{result.target}/{result.probe} failed: {result.error or 'no response'}"
         shown = f"{value:.1f}" if isinstance(value, float) else value
         limit = self._threshold(rule, result) or rule.threshold_for(result.probe)
         return f"{result.target}/{result.probe}: {rule.field}={shown} {rule.op} {limit}"

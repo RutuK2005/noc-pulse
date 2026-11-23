@@ -86,7 +86,7 @@ if not svc.empty:
                 "SLA",
             ]
         ].round(3),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -119,9 +119,7 @@ if choice:
         right.line_chart(df["ok"].astype(float).resample("5min").mean().mul(100))
 
 st.subheader("Per-target KPIs")
-st.dataframe(
-    pd.DataFrame(target_kpis(store, since=since)).round(3), use_container_width=True, hide_index=True
-)
+st.dataframe(pd.DataFrame(target_kpis(store, since=since)).round(3), width="stretch", hide_index=True)
 
 # ---- alarms and tickets ---------------------------------------------------
 st.header("Alarms")
@@ -147,7 +145,7 @@ if alarms["rows"]:
                 "ticket_id",
             ]
         ],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 else:
@@ -175,7 +173,7 @@ if tickets:
             for t in tickets
         ]
     )
-    st.dataframe(tdf, use_container_width=True, hide_index=True)
+    st.dataframe(tdf, width="stretch", hide_index=True)
     pick = st.selectbox("Ticket details", [t.id for t in tickets])
     t = next(x for x in tickets if x.id == pick)
     st.markdown(f"**{t.id} {t.priority} [{t.state.value}]** {t.title}  \nservices: {', '.join(t.services)}")
@@ -202,7 +200,7 @@ try:
         for name, c in sd["classes"].items()
     ]
     st.caption(f"paths: {sd['path_targets']}; primary {sd['primary']}; hold-down {sd['hold_down']}")
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 except ValueError as exc:
     st.info(str(exc))
 
