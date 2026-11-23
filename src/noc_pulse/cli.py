@@ -162,9 +162,10 @@ def report(
     db: Path = DbOpt,
     since: str = typer.Option(None, help="only the last N (e.g. 2h); default all data"),
     markdown: Path = typer.Option(None, help="also write a Markdown report to this file"),
+    json_out: Path = typer.Option(None, "--json", help="also write a JSON summary to this file"),
 ) -> None:
     """Data coverage, per-target KPIs and per-service SLA compliance."""
-    from .report import coverage, fmt_ts, render_markdown, service_kpis, target_kpis
+    from .report import coverage, fmt_ts, render_markdown, service_kpis, summary_json, target_kpis
 
     inv = load_inventory(inventory)
     store = _open_store(db)
@@ -228,6 +229,10 @@ def report(
         markdown.parent.mkdir(parents=True, exist_ok=True)
         markdown.write_text(render_markdown(store, inv), encoding="utf-8")
         console.print(f"wrote {markdown}")
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(json.dumps(summary_json(store, inv), indent=2, default=str), encoding="utf-8")
+        console.print(f"wrote {json_out}")
 
 
 @app.command()

@@ -133,6 +133,24 @@ def service_kpis(
     return out
 
 
+def hourly_ping(store: Store) -> tuple[list[str], list[dict[str, Any]]]:
+    """Per local-clock-hour p95 RTT and loss for every ping series (time-of-day view)."""
+    targets = sorted({t for t, p in store.series_keys() if p == "ping"})
+    hours: dict[str, dict[str, list[ProbeResult]]] = {}
+    for t in targets:
+        for r in store.samples(target=t, probe="ping"):
+            h = time.strftime("%Y-%m-%d %H:00", time.localtime(r.ts))
+            hours.setdefault(h, {}).setdefault(t, []).append(r)
+    rows = []
+    for h in sorted(hours):
+        row: dict[str, Any] = {"hour": h}
+        for t in targets:
+            k = summarize(hours[h].get(t, []))
+            row[t] = (k.latency_p95_ms, k.loss_pct, k.samples)
+        rows.append(row)
+    return targets, rows
+
+
 def alarm_summary(store: Store) -> dict[str, Any]:
     rows = store.rows("SELECT * FROM alarms ORDER BY raised_at")
     return {
@@ -189,6 +207,28 @@ def sdwan_report(
     )
     rep["path_targets"] = dict(cfg["paths"])
     return rep
+
+
+def summary_json(store: Store, inv: Inventory) -> dict[str, Any]:
+    """Machine-readable summary of everything in the Markdown report."""
+    cov = coverage(store)
+    al = alarm_summary(store)
+    tk = ticket_summary(store, now=cov["last"])
+    try:
+        sd: dict[str, Any] | None = sdwan_report(store, inv)
+    except ValueError:
+        sd = None
+    return {
+        "generated": fmt_ts(time.time()),
+        "coverage": {k: v for k, v in cov.items() if k != "runs"},
+        "first_local": fmt_ts(cov["first"]),
+        "last_local": fmt_ts(cov["last"]),
+        "targets": target_kpis(store),
+        "services": [{k: v for k, v in s.items() if k != "checks"} for s in service_kpis(store, inv)],
+        "alarms": {k: v for k, v in al.items() if k not in ("rows", "active")},
+        "tickets": {k: v for k, v in tk.items() if k != "tickets"},
+        "sdwan": sd,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +303,18 @@ def render_markdown(store: Store, inv: Inventory, title: str = "noc-pulse report
             f"{_f(s['availability_pct'], 3)} | {_f(s['latency_p95_ms'])} | {_f(s['jitter_ms'])} | "
             f"{_f(s['loss_pct'], 3)} | {_f(s['mos'])} | {verdict} |"
         )
+    targets, hourly = hourly_ping(store)
+    if hourly:
+        lines += [
+            "",
+            "## Ping p95 RTT (ms) / loss (%) per hour (local time)",
+            "",
+            "| Hour | " + " | ".join(targets) + " |",
+            "|---|" + "---:|" * len(targets),
+        ]
+        for row in hourly:
+            cells = [f"{_f(row[t][0], 1)} / {_f(row[t][1], 2)}" if row[t][2] else "-" for t in targets]
+            lines.append(f"| {row['hour']} | " + " | ".join(cells) + " |")
     al = alarm_summary(store)
     tk = ticket_summary(store, now=cov["last"])
     lines += [
