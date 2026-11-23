@@ -1,0 +1,86 @@
+# Fault-injection lab used by `noc-pulse demo`.
+# Everything runs on 127.0.0.1, so short probe intervals are fine (no external traffic).
+#
+#   lab-edge (TCP 18081, "site edge router")
+#     +-- lab-app (HTTP 18080/health, "customer web app")
+#     +-- lab-api (TCP 18082, "customer API")
+
+version: 1
+
+sla_policies:
+  gold:   {availability_pct: 99.9, latency_p95_ms: 100, jitter_ms: 20, loss_pct: 0.5, mos_min: 4.0}
+  silver: {availability_pct: 99.5, latency_p95_ms: 200, jitter_ms: 30, loss_pct: 1.0, mos_min: 3.6}
+
+targets:
+  - id: lab-edge
+    name: Branch-07 edge router (lab listener)
+    role: gateway
+    host: 127.0.0.1
+    probes:
+      - {kind: tcp, interval_s: 2, port: 18081, timeout_s: 3}
+  - id: lab-app
+    name: Customer web app (lab HTTP server)
+    role: app
+    host: 127.0.0.1
+    depends_on: [lab-edge]
+    probes:
+      - {kind: http, interval_s: 2, url: "http://127.0.0.1:18080/health", timeout_s: 3}
+  - id: lab-api
+    name: Customer API (lab listener)
+    role: app
+    host: 127.0.0.1
+    depends_on: [lab-edge]
+    probes:
+      - {kind: tcp, interval_s: 2, port: 18082, timeout_s: 3}
+
+services:
+  - id: branch07-access
+    name: Branch-07 managed SD-WAN access
+    customer: Demo Customer (fictional)
+    site: Branch-07
+    sla_class: gold
+    impact: high
+    targets: [lab-edge]
+  - id: branch07-web
+    name: Branch-07 web application
+    customer: Demo Customer (fictional)
+    site: Branch-07
+    sla_class: silver
+    impact: medium
+    targets: [lab-app]
+  - id: branch07-api
+    name: Branch-07 API
+    customer: Demo Customer (fictional)
+    site: Branch-07
+    sla_class: silver
+    impact: medium
+    targets: [lab-api]
+
+alarm_rules:
+  - id: unreachable
+    description: Probe failed (timeout, refused, DNS error, HTTP >= 400)
+    applies_to: [ping, tcp, dns, http]
+    field: ok
+    op: "=="
+    value: false
+    severity: critical
+    raise_after: 3
+    clear_after: 2
+    service_affecting: true
+
+alarm_settings:
+  flap_window_s: 5
+  correlation_window_s: 4   # wait 2 probe intervals for a parent alarm before ticketing
+
+ticketing:
+  priority_matrix:
+    high:   {high: P1, medium: P2, low: P3}
+    medium: {high: P2, medium: P3, low: P4}
+    low:    {high: P3, medium: P4, low: P4}
+  urgency_from_severity: {critical: high, major: medium, minor: low, warning: low}
+  sla_minutes:
+    P1: {response: 15, resolve: 240}
+    P2: {response: 30, resolve: 480}
+    P3: {response: 120, resolve: 1440}
+    P4: {response: 480, resolve: 4320}
+  open_for_severities: [critical, major]
