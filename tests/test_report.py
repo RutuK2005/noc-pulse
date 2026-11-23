@@ -74,3 +74,19 @@ def test_last_responding_hop():
 
 def test_no_icmp_only_check_hypothesis():
     assert "traceroute" in summarize_findings({"ping": False})
+
+
+def test_handover_lists_open_tickets_and_watch_items(inv):
+    from noc_pulse.engine import Engine
+    from noc_pulse.report import render_handover
+
+    store = Store(":memory:")
+    eng = Engine(inv, store)
+    for i in range(6):
+        s = sample("gw", "ping", i * 30, ok=i < 2)
+        store.insert_sample(s)
+        eng.process(s)
+    text = render_handover(store, inv, hours=8)
+    assert "Open: 1" in text and "P1" in text
+    assert "Still active at handover: 2" in text  # unreachable + its packet_loss symptom
+    assert "gw/ping" in text  # watch list: loss and failed samples

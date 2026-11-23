@@ -236,6 +236,25 @@ def report(
 
 
 @app.command()
+def handover(
+    inventory: Path = InvOpt,
+    db: Path = DbOpt,
+    hours: float = typer.Option(8.0, help="length of the shift to summarise"),
+    markdown: Path = typer.Option(None, help="write the note to this file instead of printing it"),
+) -> None:
+    """NOC shift-handover note: service health, alarms, open tickets, watch list."""
+    from .report import render_handover
+
+    text = render_handover(_open_store(db), load_inventory(inventory), hours)
+    if markdown:
+        markdown.parent.mkdir(parents=True, exist_ok=True)
+        markdown.write_text(text, encoding="utf-8")
+        console.print(f"wrote {markdown}")
+    else:
+        console.print(text, markup=False)
+
+
+@app.command()
 def replay(inventory: Path = InvOpt, db: Path = DbOpt) -> None:
     """Re-run the alarm/correlation/ticket pipeline over all stored samples."""
     from .engine import replay as do_replay

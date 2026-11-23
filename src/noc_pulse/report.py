@@ -373,3 +373,79 @@ def render_markdown(store: Store, inv: Inventory, title: str = "noc-pulse report
             )
     lines.append("")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# NOC shift handover
+# ---------------------------------------------------------------------------
+def render_handover(store: Store, inv: Inventory, hours: float = 8.0) -> str:
+    """A shift-handover note for the last ``hours`` of data (what the next shift must know)."""
+    from .engine import load_tickets
+
+    _, last, _ = store.time_range()
+    if last is None:
+        return "# Shift handover\n\nNo data.\n"
+    since = last - hours * 3600
+    lines = [
+        "# NOC shift handover",
+        "",
+        f"Period: {fmt_ts(since)} -> {fmt_ts(last)} (last {hours:g} h of data, local time).",
+        "",
+        "## Service health in this shift",
+        "",
+        "| Service | Class | Avail % | p95 ms | Loss % | MOS | SLA |",
+        "|---|---|---:|---:|---:|---:|---|",
+    ]
+    for s in service_kpis(store, inv, since=since):
+        verdict = "met" if not s["breaches"] else "BREACH: " + ", ".join(s["breaches"])
+        lines.append(
+            f"| {s['service']} | {s['sla_class']} | {_f(s['availability_pct'], 3)} | "
+            f"{_f(s['latency_p95_ms'])} | {_f(s['loss_pct'], 3)} | {_f(s['mos'])} | {verdict} |"
+        )
+    alarms = store.rows("SELECT * FROM alarms ORDER BY raised_at")
+    in_shift = [a for a in alarms if a["raised_at"] >= since]
+    active = [a for a in alarms if a["state"] == "active"]
+    lines += ["", "## Alarms", ""]
+    lines.append(
+        f"- Raised this shift: {len(in_shift)} "
+        f"({sum(a['suppressed'] for a in in_shift)} suppressed as symptoms of a root cause)"
+    )
+    lines.append(f"- Still active at handover: {len(active)}")
+    for a in active:
+        root = f", symptom of alarm #{a['root_cause_id']}" if a["suppressed"] else ""
+        lines.append(
+            f"  - #{a['id']} {a['target']}/{a['probe']} {a['rule']} [{a['severity']}] since "
+            f"{fmt_ts(a['raised_at'])}{root}"
+        )
+    tickets = load_tickets(store)
+    open_t = [t for t in tickets if t.state.value not in ("Resolved", "Closed")]
+    done = [t for t in tickets if t.resolved_at is not None and t.resolved_at >= since]
+    lines += ["", "## Tickets", "", f"- Open: {len(open_t)}"]
+    for t in open_t:
+        rem = t.remaining(last)
+        lines.append(
+            f"  - {t.id} {t.priority} {t.state.value}: {t.title} - resolve SLA "
+            + ("BREACHED" if rem["resolve_s"] < 0 else f"{rem['resolve_s'] / 60:.0f} min left")
+        )
+    lines.append(f"- Resolved this shift: {len(done)}")
+    for t in done:
+        ttr = t.time_to_resolve() or 0
+        lines.append(f"  - {t.id} {t.priority}: {t.title} (time to resolve {ttr / 60:.1f} min)")
+    lines += ["", "## Watch list", ""]
+    watch = []
+    for r in target_kpis(store, since=since):
+        if r["loss_pct"]:
+            watch.append(
+                f"- {r['target']}/{r['probe']}: {r['loss_pct']:.2f} % ICMP loss "
+                f"({r['echoes_sent'] - r['echoes_received']} of {r['echoes_sent']} echoes)"
+            )
+        if r.get("cert_days_min") is not None and r["cert_days_min"] < 30:
+            watch.append(f"- {r['target']}: TLS certificate expires in {r['cert_days_min']:.0f} days")
+        if r["availability_pct"] is not None and r["availability_pct"] < 100:
+            watch.append(
+                f"- {r['target']}/{r['probe']}: {r['samples'] - r['ok']} failed samples "
+                f"(availability {r['availability_pct']:.3f} %)"
+            )
+    lines += watch or ["- nothing unusual"]
+    lines.append("")
+    return "\n".join(lines)

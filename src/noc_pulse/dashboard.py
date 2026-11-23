@@ -71,24 +71,30 @@ st.header("Customer services vs SLA")
 svc = pd.DataFrame(service_kpis(store, inv, since=since))
 if not svc.empty:
     svc["SLA"] = svc["breaches"].apply(lambda b: "met" if not b else "BREACH: " + ", ".join(b))
-    st.dataframe(
-        svc[
-            [
-                "service",
-                "customer",
-                "sla_class",
-                "kpi_source",
-                "availability_pct",
-                "latency_p95_ms",
-                "jitter_ms",
-                "loss_pct",
-                "mos",
-                "SLA",
-            ]
-        ].round(3),
-        width="stretch",
-        hide_index=True,
+    view = svc[
+        [
+            "service",
+            "sla_class",
+            "kpi_source",
+            "availability_pct",
+            "latency_p95_ms",
+            "jitter_ms",
+            "loss_pct",
+            "mos",
+            "SLA",
+        ]
+    ].rename(
+        columns={
+            "sla_class": "class",
+            "kpi_source": "KPI source",
+            "availability_pct": "avail %",
+            "latency_p95_ms": "p95 ms",
+            "jitter_ms": "jitter ms",
+            "loss_pct": "loss %",
+            "mos": "MOS",
+        }
     )
+    st.dataframe(view.round(3), width="stretch", hide_index=True)
 
 # ---- KPI charts -----------------------------------------------------------
 st.header("KPI trends")
