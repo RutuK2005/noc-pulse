@@ -22,7 +22,10 @@ from .tickets import mtta_s, mttr_s, sla_report
 def fmt_ts(ts: float | None) -> str:
     if ts is None:
         return "-"
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+    try:
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+    except (OSError, OverflowError, ValueError):  # e.g. negative epochs on Windows
+        return f"{ts:.0f}"
 
 
 def coverage(store: Store, gap_s: float = 120.0) -> dict[str, Any]:
@@ -382,10 +385,10 @@ def render_handover(store: Store, inv: Inventory, hours: float = 8.0) -> str:
     """A shift-handover note for the last ``hours`` of data (what the next shift must know)."""
     from .engine import load_tickets
 
-    _, last, _ = store.time_range()
-    if last is None:
+    first, last, _ = store.time_range()
+    if first is None or last is None:
         return "# Shift handover\n\nNo data.\n"
-    since = last - hours * 3600
+    since = max(first, last - hours * 3600)
     lines = [
         "# NOC shift handover",
         "",
